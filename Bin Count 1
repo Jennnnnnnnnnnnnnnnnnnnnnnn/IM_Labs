@@ -1,3 +1,4 @@
+
 /* 
 	Pete Hubbard 2019
 	Loughborough University
@@ -14,14 +15,14 @@ void sleepFor(int);
 
 int main(void)
 {
-  RCC->AHBENR |= 0x00200000; 
+  RCC->AHBENR |= RCC_AHBENR_GPIOEEN;
   //We are interested in pins 8-15 , which are bits 16-31
   GPIOE->MODER |= 0x55550000;
   //Supposedly initial value of the leds are 0x00000000 , we want the final value to be 0x0000FF00; 
   int i;
   for(i = 0; i < 256; i++){
     GPIOE->ODR += 0x00000100;
-    sleepFor(500000);
+    sleepFor(1000000);
   }
   return 0;
 }
