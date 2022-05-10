@@ -1,0 +1,70 @@
+/* 
+	Pete Hubbard 2019
+	Loughborough University
+	WSC055 Lab 1
+	V.2.0
+	
+	The following 'c' code presents an outline for you to adapt during the laboratory
+	
+	*/
+
+#include "stm32f3xx.h"                  // Device header
+#include "stm32f303xc.h" //Lists 73 interrupt  types
+
+
+int onflag;
+
+int main(void)
+{
+RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; //directs clock pulses to the timer
+RCC -> AHBENR |=RCC_AHBENR_GPIOEEN; 
+TIM3->PSC = 7999; // prescalor value in Timer ‘x’ as 100
+TIM3->ARR = 999;  // Auto-Reset Register of Timer ‘x’ set to 1000 counts
+//PSC = 7999, ARR = 999
+//PSC = 799, ARR = 9999
+//PSC = 399, ARR = 19999
+onflag = 0;
+
+TIM3->CR1 |= TIM_CR1_CEN; //enable command to set timer action in motion 
+//Tell timer to generate interrupt flag for ARR event
+//TIM3->DIER &= 0x00000001; //should this be sw in here? (from slides) 
+
+TIM3->DIER |= TIM_DIER_UIE; // Set DIER register to watch out for an ‘Update’ Interrupt Enable (UIE) – or 0x00000001. Set the appropriate bits In the ‘TIMx->DIER’ register (DMA/Interrupt Enable Register) so that the event of ‘reaching the ARR value’ will enable an interrupt from the timer to be triggered
+NVIC_EnableIRQ(TIM3_IRQn); // Enable Timer ‘x’ interrupt request in NVIC. Set the appropriate flag in the Nested Vector Interrupt Controller (NVIC) to tell it to look out for an interrupt from Timer ‘x’
+
+	GPIOE->MODER |= 0x55550000; // set pin 15 to op
+	GPIOE->OTYPER &= ~0x00000000; // Set output type for each pin required in Port E
+	GPIOE->PUPDR &= ~0x00000000; // Set Pull up/Pull down resistor configuration for Port
+
+while (1)
+	    {
+         
+          }   //this while loop from a tutorial
+
+}
+
+void TIM3_IRQHandler() //should void not be written in here? rather than ()
+{
+    if ((TIM3->SR & TIM_SR_UIF) !=0) // Check interrupt source is from the ‘Update’ interrupt flag
+    {
+
+
+//if (onflag==0)
+//{
+//	 GPIOE->BSRRL = 0x0100; 
+//	++onflag;
+//}
+if (onflag<=255)
+{
+	GPIOE->ODR += 0x00000100;
+	++onflag;
+}
+else if (onflag >255)
+{
+	GPIOE->BSRRH = 0xFF00; 
+	onflag = 0;
+
+    }
+    TIM3->SR &= ~TIM_SR_UIF; // Reset ‘Update’ interrupt flag in the SR register
+}
+		}
