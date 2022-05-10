@@ -1,0 +1,6 @@
+#include ---
+
+RCC->APB1ENR |= RCC_APB1ENR_DAC1EN;         //connect DAC to sysclk through APB1 i.e. enable clock
+GPIOA->MODER |= 0x00000300               //using DAC1_OUT1 connected to PA.4, configure PA.4 to analog mode
+DAC1->CR |= DAC_CR_BOFF1;                 //disable buffer
+DAC1->CR |= DAC_CR_EN1;                   //enable DAC 1
