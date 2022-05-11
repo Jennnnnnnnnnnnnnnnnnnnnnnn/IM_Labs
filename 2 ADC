@@ -12,6 +12,8 @@ RCC -> AHBENR |=RCC_AHBENR_GPIOAEN;     //ennable GPIO port A to sysclk
 RCC->CFGR2 |= RCC_CFGR2_ADCPRE12_DIV2;    //this and next 2 lines are config ADC clock
 RCC->AHBENR |= RCC_AHBENR_ADC12EN;  
 ADC1_2_COMMON->CCR |= 0x00010000;
+RCC->APB1ENR |= RCC_APB1ENR_DAC1EN;         //connect DAC to sysclk through APB1 i.e. enable clock
+
 MODER->GPIOA |= 0x00000003;    //pin PA.0 to ana mode
 ADC1_CFGR |= 0x00000010;    //config 8bit, RH aling, non cont
 ADC1_SQR |= 0x00000040;    //config CH1 and 1 channel length (binary 0)
