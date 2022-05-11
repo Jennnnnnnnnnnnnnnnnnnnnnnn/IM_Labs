@@ -1,5 +1,5 @@
 /*start up*/
-ADC1_CR-> &= ~0x20000000; //switch reset value to set bits to low
+ADC1_CR-> &= ~0x20000000; //switch reset value to set bits to low  //or is it ADC1->CR??
 ADC1_CR -> |= 0x10000000; //then stitch to high to get enable 01
 while (1)
 {
@@ -12,7 +12,8 @@ RCC -> AHBENR |=RCC_AHBENR_GPIOAEN;     //ennable GPIO port A to sysclk
 RCC->CFGR2 |= RCC_CFGR2_ADCPRE12_DIV2;    //this and next 2 lines are config ADC clock
 RCC->AHBENR |= RCC_AHBENR_ADC12EN;  
 ADC1_2_COMMON->CCR |= 0x00010000;
-MODER->GPIOA |= 0x00000003    //pin PA.0 to ana mode
-ADC1_CFGR |= 0x00000010    //config 8bit, RH aling, non cont
-ADC1_SQR
+MODER->GPIOA |= 0x00000003;    //pin PA.0 to ana mode
+ADC1_CFGR |= 0x00000010;    //config 8bit, RH aling, non cont
+ADC1_SQR |= 0x00000040;    //config CH1 and 1 channel length (binary 0)
+ADCx_SMPR1 |= 0x00000018; //sample time of  7.5 ADC clock cycles
 
