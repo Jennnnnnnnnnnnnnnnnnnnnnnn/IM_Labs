@@ -1,1 +1,8 @@
 /*start up*/
+ADC1_CR-> &= ~0x20000000; //switch reset value to set bits to low
+ADC1_CR -> |= 0x10000000; //then stitch to high to get enable 01
+while (1)
+{
+delay (100); //is this not millisec? should be 100000?
+}
+ADC1_CR -> |= 0x80000000; //switch ADCAL to high to start cal
