@@ -6,3 +6,6 @@ while (1)
 delay (100); //is this not millisec? should be 100000?
 }
 ADC1_CR -> |= 0x80000000; //switch ADCAL to high to start cal
+
+RCC -> AHBENR |=RCC_AHBENR_GPIOEEN;   //enable GPIO port E to sysclk
+RCC -> AHBENR |=RCC_AHBENR_GPIOAEN;     //ennable GPIO port A to sysclk
