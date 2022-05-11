@@ -1,3 +1,6 @@
+#include "stm32f3xx.h"                  // Device header
+#include "stm32f303xc.h" //Lists 73 interrupt  types
+
 /*start up*/
 ADC1_CR-> &= ~0x20000000; //switch reset value to set bits to low  //or is it ADC1->CR??
 ADC1_CR -> |= 0x10000000; //then stitch to high to get enable 01
