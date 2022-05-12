@@ -1,0 +1,10 @@
+RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN; //enable clock for opamp
+
+//non inv config
+//pga func - allow to define scaling value
+OPAMP1_CSR //define chosen ip and op CH. op mode and gain
+GPIOA -> MODER |= 0x00000030; //ouput pin PA.2 to ana mode
+GPIOA -> MODER |= 0x00000C00;//ip pin PA.5 to ana mode
+OPAMP1->CSR |= 0x00000001;  //enable opamp
+OPAMP1->CSR |= 0x00000004; // PA.5 as non-inv. Input
+OPAMP1->CSR |= 0x00000040; // Set VM_SEL to 0b10 to enable PGA mode  - but says noninv config??
