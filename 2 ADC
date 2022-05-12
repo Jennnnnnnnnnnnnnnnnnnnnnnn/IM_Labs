@@ -64,13 +64,17 @@ void TIM3_IRQHandler() //should void not be written in here? rather than ()
 
 if (onflag<=255)
 {
-	GPIOE->ODR += 0x00000100;
+        GPIOE->BSRRH = 0xFF00;
+	GPIOE->BSRRL = onflag<<8;
 	++onflag;
 }
 else if (onflag >255)
 {
 	GPIOE->BSRRH = 0xFF00; 
 	onflag = 0;
+	
+	
+//DAC1->DHR12R1 |= onflag; (for DAC code, change for ADC)
 
 GPIOE->ODR |= ADC1->DR; //output the LED values on the ADC
     }
