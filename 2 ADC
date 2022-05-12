@@ -5,7 +5,7 @@
 
 void SubFunction(void);  //subfunc prototype
 int onflag;
-
+int ADC_read;
 
 
 
@@ -27,7 +27,7 @@ DAC1->CR |= DAC_CR_EN1;                   //enable DAC 1
 
 /*mainwhile or superloop*/ 
 ADC1->CR |= 0x00000002; //start sampling (wait for EOC in ADC1_ISR to go high)
-register APSR ADC1_DR_asm ("apsr");  //read the data from the DR reg to reset EOC flag
+  //read the data from the DR reg to reset EOC flag
 
 TIM3->PSC = 799; // prescalor value in Timer ‘x’ as 799
 TIM3->ARR = 999;  // Auto-Reset Register of Timer ‘x’ set to 999 counts - 10 times a second!
@@ -45,10 +45,12 @@ NVIC_EnableIRQ(TIM3_IRQn); // Enable Timer ‘x’ interrupt request in NVIC. Se
 	GPIOE->OTYPER &= ~0x00000000; // Set output type for each pin required in Port E
 	GPIOE->PUPDR &= ~0x00000000; // Set Pull up/Pull down resistor configuration for Port
 	GPIOA->MODER |= 0x00000300;               //using DAC1_OUT1 connected to PA.4, configure PA.4 to analog mode
+	
+
 
 while (1)
 	    {
-         
+ ADC_read = ADC1->DR;  
           }   //this while loop from a tutorial
 
 }
@@ -65,7 +67,7 @@ void TIM3_IRQHandler() //should void not be written in here? rather than ()
 if (onflag<=255)
 {
         GPIOE->BSRRH = 0xFF00;
-	GPIOE->BSRRL = onflag<<8;
+	GPIOE->BSRRL = ADC_read<<8;
 	++onflag;
 }
 else if (onflag >255)
