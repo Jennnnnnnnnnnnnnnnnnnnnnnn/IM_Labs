@@ -2,10 +2,6 @@
 #include "stm32f303xc.h" //Lists 73 interrupt  types
 
 
-GPIOA->MODER |= 0x00000300               //using DAC1_OUT1 connected to PA.4, configure PA.4 to analog mode
-DAC1->CR |= DAC_CR_BOFF1;                 //disable buffer
-DAC1->CR |= DAC_CR_EN1;                   //enable DAC 1
-
 
 int onflag;
 
@@ -37,11 +33,13 @@ while (1)
          
           }   //this while loop from a tutorial
 
-}
-
-GPIOA->MODER |= 0x00000300               //using DAC1_OUT1 connected to PA.4, configure PA.4 to analog mode
+GPIOA->MODER |= 0x00000300;               //using DAC1_OUT1 connected to PA.4, configure PA.4 to analog mode
 DAC1->CR |= DAC_CR_BOFF1;                 //disable buffer
 DAC1->CR |= DAC_CR_EN1;                   //enable DAC 1
+}
+
+
+
 
 
 void TIM3_IRQHandler() //should void not be written in here? rather than ()
@@ -60,8 +58,8 @@ else if (onflag >255)
 	GPIOE->BSRRH = 0xFF00; 
 	onflag = 0;
 
-GPIOE->ODR |= DAC1_DHR12R1 //data from bin count reg to DAC reg   or DAC_DHR12R1
-/*OR*/  GPIOE->ODR |= DAC_DOR1    or DAC1_DOR
+GPIOE->ODR |= DAC1->DHR12R1; //data from bin count reg to DAC reg   or DAC_DHR12R1
+/*OR*/  //GPIOE->ODR |= DAC_DOR1    or DAC1_DOR
     }
     TIM3->SR &= ~TIM_SR_UIF; // Reset ‘Update’ interrupt flag in the SR register
 }
