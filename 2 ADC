@@ -1,6 +1,30 @@
 #include "stm32f3xx.h"                  // Device header
 #include "stm32f303xc.h" //Lists 73 interrupt  types
 
+RCC -> AHBENR |=RCC_AHBENR_GPIOEEN;   //enable GPIO port E to sysclk
+RCC -> AHBENR |=RCC_AHBENR_GPIOAEN;     //ennable GPIO port A to sysclk
+RCC->CFGR2 |= RCC_CFGR2_ADCPRE12_DIV2;    //this and next 2 lines are config ADC clock
+RCC->AHBENR |= RCC_AHBENR_ADC12EN;  
+ADC1_2_COMMON->CCR |= 0x00010000;
+RCC->APB1ENR |= RCC_APB1ENR_DAC1EN;         //connect DAC to sysclk through APB1 i.e. enable clock
+
+void SubFunction(void);  //subfunc prototype
+
+int void main()
+{
+SubFunction(); // Function call
+while(1);
+
+/*mainwhile or superloop*/ 
+ADC_CR |= 0x00000002; //start sampling (wait for EOC in ADC1_ISR to go high)
+register APSR ADC1_DR_asm ("apsr");  //read the data from the DR reg to reset EOC flag
+}
+
+
+/* Function Definition of SubFunction */
+//ADC startup
+Void SubFunction(void)
+{
 /*start up*/
 ADC1_CR-> &= ~0x20000000; //switch reset value to set bits to low  //or is it ADC1->CR??
 ADC1_CR -> |= 0x10000000; //then stitch to high to get enable 01
@@ -10,15 +34,12 @@ delay (100); //is this not millisec? should be 10?
 }
 ADC1_CR -> |= 0x80000000; //switch ADCAL to high to start cal
 
-RCC -> AHBENR |=RCC_AHBENR_GPIOEEN;   //enable GPIO port E to sysclk
-RCC -> AHBENR |=RCC_AHBENR_GPIOAEN;     //ennable GPIO port A to sysclk
-RCC->CFGR2 |= RCC_CFGR2_ADCPRE12_DIV2;    //this and next 2 lines are config ADC clock
-RCC->AHBENR |= RCC_AHBENR_ADC12EN;  
-ADC1_2_COMMON->CCR |= 0x00010000;
-RCC->APB1ENR |= RCC_APB1ENR_DAC1EN;         //connect DAC to sysclk through APB1 i.e. enable clock
 
 MODER->GPIOA |= 0x00000003;    //pin PA.0 to ana mode
 ADC1_CFGR |= 0x00000010;    //config 8bit, RH aling, non cont
 ADC1_SQR |= 0x00000040;    //config CH1 and 1 channel length (binary 0)
-ADCx_SMPR1 |= 0x00000018; //sample time of  7.5 ADC clock cycles
+ADC1_SMPR1 |= 0x00000018; //sample time of  7.5 ADC clock cycles
+ADC1_CR |= 0x00000001; //enable ADC (wait for ADRDY flag in ADC1_ISR) 
 
+return;
+}
