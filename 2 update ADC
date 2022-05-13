@@ -1,0 +1,130 @@
+#include "stm32f3xx.h"                  // Device header
+#include "stm32f303xc.h" //Lists 73 interrupt  types
+
+
+
+void SubFunction(void);  //subfunc prototype
+void delay(int a); // prototype for delay function
+int onflag;
+int ADC_read;
+
+
+
+void main(){  //should not be int main??
+
+SubFunction(); // Function call
+
+/*clocks*/
+RCC -> AHBENR |=RCC_AHBENR_GPIOEEN;   //enable GPIO port E to sysclk
+RCC -> AHBENR |=RCC_AHBENR_GPIOAEN;     //ennable GPIO port A to sysclk
+RCC->CFGR2 |= RCC_CFGR2_ADCPRE12_DIV2;    //this and next 2 lines are config ADC clock
+RCC->AHBENR |= RCC_AHBENR_ADC12EN;  
+ADC1_2_COMMON->CCR |= 0x00010000;
+RCC->APB1ENR |= RCC_APB1ENR_DAC1EN;         //connect DAC to sysclk through APB1 i.e. enable clock
+	
+/*DAC set up*/
+GPIOA->MODER |= 0x00000300;               //using DAC1_OUT1 connected to PA.4, configure PA.4 to analog mode
+DAC1->CR |= DAC_CR_BOFF1;                 //disable buffer
+DAC1->CR |= DAC_CR_EN1;                   //enable DAC 1
+
+/*ADC start conversion*/ 
+ADC1->CR |= ADC_CR_ADSTART; //start sampling by setting ADSTART bit to high
+while (ADC1->ISR & ~ADC_ISR_EOC);		//wait for EOC flag to go high
+ADC_read = ADC1->DR; 				 //read the data from the DR reg to reset EOC flag
+
+
+onflag = 0;
+
+/*timer and interupt*/
+TIM3->PSC = 799; // prescalor value in Timer ‘x’ as 799
+TIM3->ARR = 999;  // Auto-Reset Register of Timer ‘x’ set to 999 counts - 10 times a second!
+TIM3->CR1 |= TIM_CR1_CEN; //enable command to set timer action in motion 
+TIM3->DIER |= TIM_DIER_UIE; // Set DIER register to watch out for an ‘Update’ Interrupt Enable (UIE) – or 0x00000001. Set the appropriate bits In the ‘TIMx->DIER’ register (DMA/Interrupt Enable Register) so that the event of ‘reaching the ARR value’ will enable an interrupt from the timer to be triggered
+NVIC_EnableIRQ(TIM3_IRQn); // Enable Timer ‘x’ interrupt request in NVIC. Set the appropriate flag in the Nested Vector Interrupt Controller (NVIC) to tell it to look out for an interrupt from Timer ‘x’
+
+/*pin calibration*/
+	GPIOE->MODER |= 0x55550000; // set pin 15 to op
+	GPIOE->OTYPER &= ~0x00000000; // Set output type for each pin required in Port E
+	GPIOE->PUPDR &= ~0x00000000; // Set Pull up/Pull down resistor configuration for Port
+	GPIOA->MODER |= 0x00000300;               //using DAC1_OUT1 connected to PA.4, configure PA.4 to analog mode
+	
+	
+
+
+//while (1)
+	    {
+
+//ADC1->ISR |= ADC_ISR_EOC;		//wait for EOC flag to go high
+//ADC_read = ADC1->DR; 				//this
+          }   
+
+}
+
+
+
+
+void TIM3_IRQHandler() //should void not be written in here? rather than ()
+{
+    if ((TIM3->SR & TIM_SR_UIF) !=0) // Check interrupt source is from the ‘Update’ interrupt flag
+    {
+
+
+if (onflag<=255)
+{
+        GPIOE->BSRRH = 0xFF00;
+	GPIOE->BSRRL = ADC_read<<8;
+	++onflag;
+}
+else if (onflag >255)
+{
+	GPIOE->BSRRH = 0xFF00; 
+	onflag = 0;	
+	
+//DAC1->DHR12R1 |= onflag; (for DAC code, change for ADC)
+
+//GPIOE->ODR |= ADC1->DR; //output the LED values on the ADC????
+ADC1->DR |= onflag;
+    }
+    TIM3->SR &= ~TIM_SR_UIF; // Reset ‘Update’ interrupt flag in the SR register
+}
+		}
+
+
+
+
+/* Function Definition of SubFunction */
+//ADC startup
+void SubFunction(void)
+{
+/*start up*/
+ADC1->CR &= ~0x30000000; //switch reset value to set bits to low  
+ADC1->CR |= 0x10000000; //then stitch to high to get enable 01
+
+delay(100); //is this not millisec? should be 10?
+
+ADC1->CR |= 0x80000000; //switch ADCAL to high to start calibration
+
+while (ADC1->CR & ADC_CR_ADCAL); //wait will ADC is calibrating i.e. 1 in adcal, wait for it to go to 0
+
+GPIOA->MODER |= 0x00000003;    //pin PA.0 to ana mode
+ADC1->CFGR |= 0x00000010;    //config 8bit, RH aling, non cont
+ADC1->SQR1 |= 0x00000040;    //config CH1 and 1 channel length (binary 0)
+ADC1->SMPR1 |= 0x00000018; //sample time of  7.5 ADC clock cycles
+ADC1->CR |= 0x00000001; //enable ADC  
+while (ADC1->ISR & ~ADC_ISR_ADRD);  //wait for ADRDY flag to go high (i.e. wait while its 0
+	
+return;
+}
+
+// Delay function to occupy processor
+void delay (int a)
+{
+    volatile int i,j;
+
+    for (i=0 ; i < a ; i++)
+    {
+        j++;
+    }
+
+    return;
+}
