@@ -1,0 +1,65 @@
+**2.2 flash all leds at same time **
+
+	GPIOE->MODER |= 0x55550000;  // Set PINS 8 to 15 to be op port e
+	GPIOE->OTYPER |= 0x00000000; // &= ~0x00000100; // Set output type for each pin required in Port E
+	GPIOE->PUPDR |= 0x00000000; //&= ~0x00010000; // Set Pull up/Pull down resistor configuration for Port E	
+	// Main programme loop - make LED 4 (attached to pin PE.0) turn on and off	
+	while (1)
+  {
+		GPIOE->BSRRL = 0xFF00;
+		delay(200000);
+		GPIOE->BSRRH = 0xFF00; 
+		delay(200000);
+
+
+
+
+Binary Counter:
+#include "stm32f3xx.h"                  // Device header
+
+/*
+*Binary counter
+*/
+
+//#include <stm32f30x.h>
+
+void sleepFordelay (int);
+
+int main(void)
+{
+  RCC->AHBENR |= 0x00200000; 
+  //We are interested in pins 8-15 , which are bits 16-31
+  GPIOE->MODER |= 0x55550000;
+  //Supposedly initial value of the leds are 0x00000000 , we want the final value to be 0x0000FF00; 
+  int i;
+  for(i = 0; i < 256; i++){
+    GPIOE->ODR += 0x00000100;
+    sleepFordelay(500000);
+  }
+  return 0;
+}
+
+void sleepFordelay (int busyTime){
+int i;
+for(i = 0; i < busyTime; i++){}
+}
+
+……
+
+void TIM3_IRQHandler() //should void not be written in here? rather than ()
+{
+    if ((TIM3->SR & TIM_SR_UIF) !=0) // Check interrupt source is from the ‘Update’ interrupt flag
+    {
+int i;//create an integer called i
+if (onflag == 0) //if the onflag value is zero 
+{ 
+	GPIOE->BSRRL = 0xFF00; //swicth on LEDs 8 - 15 to high
+	++i ;
+	//create an integer called i
+    
+	}
+
+}
+
+    }
+
