@@ -1,5 +1,5 @@
 /*start up*/
-RCC->APB2ENR |= RCC_APB2ENR_TIM1EN; //enable clock for timer 1
+RCC->APB2ENR |= RCC_APB2ENR_TIM1EN; //enable clock for timer 1 (tim1 = 72MHz)
 RCC->AHBENR |= RCC_AHBENR_GPIOEEN; // Enable clock on GPIO port E
 //config pin to ana mode
 //config pin for T and R arr
