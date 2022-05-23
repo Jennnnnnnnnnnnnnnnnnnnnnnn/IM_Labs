@@ -9,7 +9,7 @@
 	*/
 
 #include "stm32f3xx.h"                  // Device header
-#include "stm32f303xc.h" //Lists 73 interrupt  types
+#include "stm32f303xc.h" //Lists 73 interrupt  types //works without this
 
 
 int onflag;
