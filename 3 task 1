@@ -2,7 +2,7 @@
 RCC->APB2ENR |= RCC_APB2ENR_TIM1EN; //enable clock for timer 1 (tim1 = 72MHz)
 RCC->AHBENR |= RCC_AHBENR_GPIOEEN; // Enable clock on GPIO port E
 
-//config pin to ana mode
+//config pin to ana mode - PE.9 and 2 others connected to LEDs
 //config pin for T and R arr (PP?)
 
 GPIOE->AFR[0]|=0x00000200; //Set PE.2 to output TIM3_CH1??
