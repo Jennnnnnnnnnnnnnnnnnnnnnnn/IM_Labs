@@ -1,0 +1,39 @@
+/*Start up PWM*/
+#include "stm32f3xx.h" 
+void startup (void); //subfunc prototype
+int main(void)
+{
+
+RCC->APB2ENR |= RCC_APB2ENR_TIM1EN; //enable clock for timer 1 (tim1 = 72MHz)
+RCC->AHBENR |= RCC_AHBENR_GPIOEEN; // Enable clock on GPIO port E
+
+//config pin to ana mode - PE.9 and 2 others connected to LEDs
+//config pin for T and R arr (PP?)
+
+GPIOE->MODER |= 0x08880000;
+//GPIOE->OTYPER |= 0x00002A00;
+//GPIOE->PUPDR |= 0x04440000;
+GPIOE->AFR[1] |=0x00202020; //Set PE.9,11,13 to output TIM1_CH1
+
+
+TIM1->PSC = 79; // prescalor value in Timer ‘x’ as 100 assuming timer 1 (72MHz) you can also |= this to a bin number
+TIM1->ARR = 1000;  // Auto-Reset Register of Timer ‘x’ set to 7200 counts - sets to 100Hz
+TIM1->CCMR1 |= 0x00006060; //set channel and 2 1 timer 1 to PWM mode using CCMR
+TIM1->CCMR2 |=0x00000060; //set channel 3 timer 1 to PWM mode using CCMR
+	
+TIM1->CCR1 = 100; //Sets on time to 10 clock pulses 10%- just an eg?? but set to clock pulses like 800000 9
+TIM1->CCR2 = 500; //50%
+TIM1->CCR3 = 900; //90%
+TIM1->BDTR |= TIM_BDTR_MOE; //Enable channel 1 to be output to the GPIO pin
+TIM1->CCER |= 0x0111; // Enable channel 1 to be output in the Capture/Compare Enable register
+TIM1->CR1 |= TIM_CR1_CEN; //Enable timer 1
+
+
+}
+
+void startup (void)
+{
+	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+	EXTI->IMR |= EXTI_IMR_MR0; //unmasks ext 10
+	EXTI->RTSR |= EXTI_RTSR_TR0; //stes ext 10 gen iINT rising edge
+	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PA; //config enable PA.0 to gen INT
