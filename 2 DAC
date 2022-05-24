@@ -1,9 +1,8 @@
 #include "stm32f3xx.h"                  // Device header
-#include "stm32f303xc.h" //Lists 73 interrupt  types
 
 
 
-int onflag;
+int ledflag;
 
 int main(void)
 {
@@ -15,7 +14,7 @@ RCC->APB1ENR |= RCC_APB1ENR_DAC1EN;         //connect DAC to sysclk through APB1
 TIM3->PSC = 799; // prescalor value in Timer ‘x’ as 799
 TIM3->ARR = 999;  // Auto-Reset Register of Timer ‘x’ set to 999 counts - 10 times a second!
 
-onflag = 0;
+ledflag = 0;
 
 TIM3->CR1 |= TIM_CR1_CEN; //enable command to set timer action in motion
 //Tell timer to generate interrupt flag for ARR event
@@ -25,8 +24,7 @@ TIM3->DIER |= TIM_DIER_UIE; // Set DIER register to watch out for an ‘Update�
 NVIC_EnableIRQ(TIM3_IRQn); // Enable Timer ‘x’ interrupt request in NVIC. Set the appropriate flag in the Nested Vector Interrupt Controller (NVIC) to tell it to look out for an interrupt from Timer ‘x’
 
 GPIOE->MODER |= 0x55550000; // set pin 15 to op
-GPIOE->OTYPER &= ~0x00000000; // Set output type for each pin required in Port E
-GPIOE->PUPDR &= ~0x00000000; // Set Pull up/Pull down resistor configuration for Port
+
 GPIOA->MODER |= 0x00000300;               //using DAC1_OUT1 connected to PA.4, configure PA.4 to analog mode
 DAC1->CR |= DAC_CR_BOFF1;                 //disable buffer
 DAC1->CR |= DAC_CR_EN1;                   //enable DAC 1
@@ -48,19 +46,19 @@ void TIM3_IRQHandler() //should void not be written in here? rather than ()
     {
 
 
-if (onflag<=255)
+if (ledflag<=255)
 {
 GPIOE->BSRRH = 0xFF00;
-GPIOE->BSRRL = onflag<<8;
-++onflag;
+GPIOE->BSRRL = ledflag<<8;
+++ledflag;
 }
-else if (onflag >255)
+else if (ledflag >255)
 {
 GPIOE->BSRRH = 0xFF00;
-onflag = 0;
+ledflag = 0;
 }
 
-DAC1->DHR12R1 |= onflag; //data from bin count reg to DAC reg   or DAC_DHR12R1
+DAC1->DHR12R1 |= ledflag; //data from bin count reg to DAC reg   or DAC_DHR12R1
 /*OR*/  //GPIOE->ODR |= DAC_DOR1    or DAC1_DOR
  
     TIM3->SR &= ~TIM_SR_UIF; // Reset ‘Update’ interrupt flag in the SR register
