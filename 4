@@ -1,0 +1,153 @@
+/*Dual Position Encoder*/
+#include "stm32f3xx.h" 
+
+int i =0;
+int A;
+int B;
+int ledflag;
+int press =1;
+
+int main(void)
+{
+/*clocks*/
+RCC->APB2ENR |= RCC_APB2ENR_TIM1EN; //Enable clock for timer 1
+RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; //Enable clock for timer 3
+RCC->AHBENR |= RCC_AHBENR_GPIOEEN; // Enable clock on GPIO port E
+RCC->AHBENR |= RCC_AHBENR_GPIOAEN; // Enable clock on GPIO port A
+RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN; //connect config controller to sysclk
+
+/*Interupt set up for LED timer*/	 
+TIM3->PSC = 799; // Prescaler value in Timer 3 as 799
+TIM3->ARR = 9999;  // Auto-Reset Register of Timer 3 set to 99 counts
+TIM3->CR1 |= TIM_CR1_CEN; //Set timer control register to enable timer3
+TIM3->DIER |= TIM_DIER_UIE; // Set DIER register to look for UIE (bit 0) going high
+NVIC_EnableIRQ(TIM3_IRQn); //Set flag in NVIC to look from interrupt from timer 3
+GPIOE->MODER |= 0x00050000; // set PE.8 PE.9 to output mode (01)
+	
+/*Interupt set up for Encoder*/
+EXTI->IMR |= EXTI_IMR_MR1; //unmasks EXTI 1 for channel A
+EXTI->IMR |= EXTI_IMR_MR3; //unmasks EXTI 3 for channel B
+EXTI->RTSR |= EXTI_RTSR_TR1; //interupt channel A (PA.1)triggered by rising edge 	
+EXTI->RTSR |= EXTI_RTSR_TR3; //interupt channel B (PA.3)triggered by falling edge
+EXTI->FTSR |= EXTI_FTSR_TR1; //interupt channel A (PE.1) triggered by rising edge 	
+EXTI->FTSR |= EXTI_FTSR_TR3; //interupt channel B (PE.3) triggered by falling edge       
+SYSCFG->EXTICR[1] &= ~(0x00000070); //enable PA.1 to generate interrupt EXTI 1
+SYSCFG->EXTICR[1] &= ~(0x00007000); //enable PA.3 to generate interrupt EXTI 3
+NVIC_EnableIRQ(EXTI1_IRQn); //tell NVIC to look for event driven interupt from EXTI 1
+NVIC_EnableIRQ(EXTI3_IRQn); //tell NVIC to look for event driven interupt from EXTI 3
+ledflag=0;
+//GPIOE->MODER |= 0x15400000; //Sets PE.11 to PE.14 to output for the 4 bit binary clock 
+//GPIOA->MODER &= ~(0x000003FF); //Sets PE.11 to PE.14 to output for the 4 bit binary clock 
+
+/*Interupt set up for button*/	
+EXTI->IMR |= EXTI_IMR_MR0; //unmasks EXTI 0
+EXTI->RTSR |= EXTI_RTSR_TR0; //Interrupt triggered by rising edge 
+SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PA; //Enable PA.0 to gen interupt EXTI 0
+NVIC_EnableIRQ(EXTI0_IRQn); //tell NVIC to look for event driven interupt from EXTI 0
+
+/*DAC Set up*/
+DAC ch 2 to connect straight to opamp
+for triangle p 246
+/*ADC Set Up*/
+
+	while (1) //to ensure the process does not get stuck in set up loop
+	    {
+         
+          }  
+}
+
+
+/*ISR Timer 3*/ 
+void TIM3_IRQHandler() 
+{
+if ((TIM3->SR & TIM_SR_UIF) !=0) // Check interrupt source is from the ‘Update’ interrupt flag
+			{
+				GPIOE -> BSRRH = 0x0300; //set PE.8 and PE.9 to off
+				if (i == 4) //if loop, if i is the value of 4..
+				{i =0;} //set i to 0
+				switch (i)
+				{
+					case 0:
+						GPIOE -> BSRRL = 0x0200; //Set PE.8 to high and PE.9 to low
+					break;
+					case 1:
+						GPIOE -> BSRRL = 0x0300; //Set PE.8 to high and PE.9 to high
+					break;
+					case 2:
+						GPIOE -> BSRRL = 0x0100; //Set PE.8 to low and PE.9 to high
+						break;
+					case 3:
+						GPIOE -> BSRRL = 0x0000; //Set PE.8 to low and PE.9 to low
+						break;
+					case 4: //for when the count goes higher than 3...
+						i = 0; //set back to 0
+					break;
+					case -1: //for when the count goes lower than 0...
+						i=3; //set back to 3
+					break;
+				}
+		i=i+press;	//Increment the i case by the press value of 1
+				
+    }
+    TIM3->SR &= ~TIM_SR_UIF; // Reset ‘Update’ interrupt flag in the SR register
+}
+		
+/*ISR EXTI 1 CHA*/
+void EXTI1_IRQHandler() //interrupt service routine
+{
+	if (EXTI->PR & EXTI_PR_PR1) // check source of interrupt
+	{
+	EXTI->PR |= EXTI_PR_PR1; // clear interrupt flag
+		A = GPIOA->IDR & GPIO_IDR_1; //set A to value on PA.1 output
+		B = GPIOA->IDR & GPIO_IDR_3; //set B to value on PA.3 output
+		if (A^B) //if loop, if A XOR B then...
+			{
+	    ledflag++; //increment the binary counter
+			GPIOE -> BSRRH = 0x7800; //Set PE.11 to PE.14 to off
+			GPIOE ->BSRRL = ledflag<<11; //Set the LEDs to the ledflag value 
+			}
+		else //if not....
+			{
+      ledflag--; //decrement the binary counter
+			GPIOE -> BSRRH = 0x7800; //Set PE.11 to PE.14 to off
+			GPIOE ->BSRRL = ledflag<<11; //Set the LEDs to the ledflag value 
+	    }		
+		
+  }
+}
+	
+/*ISR EXTI 3 CHB*/ //- put onto pins 11 to 14?
+void EXTI3_IRQHandler() //interrupt service routine
+{
+	if (EXTI->PR & EXTI_PR_PR3) // check source of interrupt
+	{
+	EXTI->PR |= EXTI_PR_PR3; // clear interrupt flag
+		A = GPIOA->IDR & GPIO_IDR_1; //set A to value on PA.1 output
+		B = GPIOA->IDR & GPIO_IDR_3; //set B to value on PA.3 output
+		if (A^B) //if loop, if A XOR B then...
+			{
+	    ledflag --; //decrement the binary counter
+			GPIOE -> BSRRH = 0x7800; //Set PE.11 to PE.14 to off
+			GPIOE ->BSRRL = ledflag<<11; //Set the LEDs to the ledflag value 
+			}
+		else //if not...
+			{
+     ledflag++;	//increment the binary counter
+			GPIOE -> BSRRH = 0x7800; //Set PE.11 to PE.14 to off
+			GPIOE ->BSRRL = ledflag<<11; //Set the LEDs to the ledflag value 
+	    }			
+  }
+}
+			
+/*ISR EXT 0 button*/
+void EXTI0_IRQHandler() //interrupt service routine
+{
+	if (EXTI->PR & EXTI_PR_PR0) //check source of interrupt
+	{
+	EXTI->PR |= EXTI_PR_PR0; // clear interrupt flag
+   press=~press; //the button reverses the direction when pressed
+
+  }	
+}
+		
+	
