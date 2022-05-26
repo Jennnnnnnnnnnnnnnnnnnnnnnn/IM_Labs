@@ -1,1 +1,173 @@
 encoder: use a timer to count pulses. remember mid L6 so asks a q in break about encoders might be useful if get stuck. 
+
+
+/*Interupt PWM*/
+#include "stm32f3xx.h" 
+//int ledflag; //create a varibale to return an integer which counts the duty cycle value
+//int AB[50]={0b10,0b11,0b01,0b00};
+int i =0;
+
+int A;
+int B;
+
+int dutyno;
+int ledflag;
+int press =1;
+
+
+int main(void)
+{
+/*clocks*/
+//RCC->APB2ENR |= RCC_APB2ENR_TIM1EN; //enable clock for timer 1
+RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; //directs clock pulses to the timer	
+RCC->AHBENR |= RCC_AHBENR_GPIOEEN; // Enable clock on GPIO port E
+RCC->AHBENR |= RCC_AHBENR_GPIOAEN; // Enable clock on GPIO port A
+RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN; //connect config controller to sysclk
+/*PWM setup*/
+/*Interupt set up for LED timer*/	
+TIM3->PSC = 799; // Prescaler value in Timer 3 as 799
+TIM3->ARR = 9999;  // Auto-Reset Register of Timer 3 set to 99 counts
+TIM3->CR1 |= TIM_CR1_CEN; //Set timer control register to enable timer3
+TIM3->DIER |= TIM_DIER_UIE; // Set DIER register to look for UIE (bit 0) going high
+NVIC_EnableIRQ(TIM3_IRQn); //Set flag in NVIC to look from interrupt from timer 3
+GPIOE->MODER |= 0x00050000; // set PE.8 PE.9 to output mode (01)
+	
+/*Interupt set up for CH 1 or CH 2*/	
+EXTI->IMR |= EXTI_IMR_MR1; //unmasks EXTI 1
+EXTI->IMR |= EXTI_IMR_MR3; //unmasks EXTI 3
+EXTI->RTSR |= EXTI_RTSR_TR1; //interupt channel A (PA.1)triggered by rising edge 	
+EXTI->RTSR |= EXTI_RTSR_TR3; //interupt channel B (PA.3)triggered by rising edge
+EXTI->FTSR |= EXTI_FTSR_TR1; //interupt channel A (PE.8)triggered by rising edge 	
+EXTI->FTSR |= EXTI_FTSR_TR3; //interupt channel B (PE.9)triggered by rising edge	
+
+SYSCFG->EXTICR[1] &= ~(0x00000070);
+SYSCFG->EXTICR[1] &= ~(0x00007000);
+NVIC_EnableIRQ(EXTI1_IRQn); //tell NVIC to look for event driven interupt from EXTI 1
+NVIC_EnableIRQ(EXTI3_IRQn); //tell NVIC to look for event driven interupt from EXTI 3
+ledflag=0;
+GPIOE->MODER |= 0x15400000; //Sets PE.11 to PE.14 to output for the 4 bit binary clock 
+GPIOA->MODER &= ~(0x000003FF); //Sets PE.11 to PE.14 to output for the 4 bit binary clock 
+
+/*Interupt set up for button*/	
+EXTI->IMR |= EXTI_IMR_MR0; //unmasks ext 10
+EXTI->RTSR |= EXTI_RTSR_TR0; //interupt triggered by rising edge 
+SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PA; //enable PA.0 to gen interupt ext 10
+NVIC_EnableIRQ(EXTI0_IRQn); //tell NVIC to look for event driven interupt from EXTI0
+dutyno=0; //set duty no to 0 to initialise 
+
+	while (1) //to ensure does not get stuck in set up
+	    {
+         
+          }  
+}
+
+
+/*ISR Timer 3*/ // how do i set to lowest priority? 
+void TIM3_IRQHandler()
+{
+if ((TIM3->SR & TIM_SR_UIF) !=0) // Check interrupt source is from the ‘Update’ interrupt flag
+			{
+				GPIOE -> BSRRH = 0x0300;
+				if (i == 4)
+				{i =0;}
+				switch (i)
+				{
+					case 0:
+						GPIOE -> BSRRL = 0x0200;
+					break;
+					case 1:
+						GPIOE -> BSRRL = 0x0300;
+					break;
+					case 2:
+						GPIOE -> BSRRL = 0x0100;
+						break;
+					case 3:
+						GPIOE -> BSRRL = 0x0000;
+						break;
+					case 4:
+						i = 0;
+					break;
+				}
+		i++;	
+				
+					
+//			if (i<4)
+//			 {//GPIOE->BSRRH = 0xFF00;
+//			 //GPIOE->BSRRL = AB[i]<<8;
+//				i++;
+//				//AB[i] = i+1;
+//			 }
+//	     if (i==4)
+//			 {i=0;}
+				//++i;
+				
+//		   i=i+press;
+//			 GPIOE->BSRRH = 0xFF00;
+//			 GPIOE->BSRRL = AB[i]<<8;
+//				if (i=-1)
+//				 {
+//				 i=3;
+//				 };
+//				if (i=4)
+//				 {
+//				 i=0;
+//				 };
+
+    }
+    TIM3->SR &= ~TIM_SR_UIF; // Reset ‘Update’ interrupt flag in the SR register
+}
+		
+/*ISR EXT 1 CHA*/
+void EXTI1_IRQHandler() //interrupt service routine
+{
+	if (EXTI->PR & EXTI_PR_PR1) // check source of interrupt
+	{
+	EXTI->PR |= EXTI_PR_PR1; // clear interrupt flag
+		
+		if (A^B) //if loop 
+			{
+	    ledflag++;
+			GPIOE -> BSRRH = 0x7800;
+			GPIOE ->BSRRL = ledflag<<11;
+			}
+		else //otherwise, if 
+			{
+      ledflag--;
+			GPIOE -> BSRRH = 0x7800;
+			GPIOE ->BSRRL = ledflag<<11;
+	    }		
+		
+  }
+}
+	
+/*ISR EXT 3 CHB*/ //- put onto pins 11 to 14?
+void EXTI3_IRQHandler() //interrupt service routine
+{
+	if (EXTI->PR & EXTI_PR_PR3) // check source of interrupt
+	{
+	EXTI->PR |= EXTI_PR_PR3; // clear interrupt flag
+		if (A^B) //if loop 
+			{
+	    ledflag --;
+			GPIOE -> BSRRH = 0x7800;
+			GPIOE ->BSRRL = ledflag<<11;
+			}
+		else //otherwise, if 
+			{
+     ledflag++;	
+			GPIOE -> BSRRH = 0x7800;
+			GPIOE ->BSRRL = ledflag<<11;
+	    }			
+  }
+}
+			
+/*ISR EXT 0 button*/// - set priority to highest? 
+void EXTI0_IRQHandler() //interrupt service routine
+{
+	if (EXTI->PR & EXTI_PR_PR0) // check source of interrupt
+	{
+	EXTI->PR |= EXTI_PR_PR0; // clear interrupt flag
+   press=-press;
+
+}	
+		}
