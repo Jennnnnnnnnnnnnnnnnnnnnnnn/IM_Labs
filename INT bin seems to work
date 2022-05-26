@@ -1,3 +1,29 @@
+/*Binary counter with interupt*/
+
+#include "stm32f3xx.h"                  // Device header
+
+int ledflag; //create variable named ledflag that returns an integer
+
+int main(void)
+{
+RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; //directs clock pulses to timer 3
+RCC -> AHBENR |=RCC_AHBENR_GPIOEEN; //Enable GPIO clock on port E
+TIM3->PSC = 799; // Prescaler value in Timer 3 as 799
+TIM3->ARR = 9999;  // Auto-Reset Register of Timer 3 set to 99 counts
+ledflag = 0; //set ledflag variable to 0
+TIM3->CR1 |= TIM_CR1_CEN; //Set timer control register to enable timer3
+TIM3->DIER |= TIM_DIER_UIE; // Set DIER register to look for UIE (bit 0) going high
+NVIC_EnableIRQ(TIM3_IRQn); //Set flag in NVIC to look from interrupt from timer 3
+GPIOE->MODER |= 0x55550000; // set PE.8 to PE.15 to output mode (01)
+
+while (1)     //while command to loop code without setting up each time
+	    {
+         
+          }   
+
+}
+
+
 /* 
 	Pete Hubbard 2019
 	Loughborough University
