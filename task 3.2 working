@@ -1,0 +1,55 @@
+
+/*Interupt PWM*/
+#include "stm32f3xx.h" 
+int dutyno; //create a varibale to return an integer which counts the duty cycle value
+		
+int main(void)
+{
+/*clocks*/
+RCC->APB2ENR |= RCC_APB2ENR_TIM1EN; //enable clock for timer 1 
+RCC->AHBENR |= RCC_AHBENR_GPIOEEN; // Enable clock on GPIO port E
+RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN; //connect config controller to sysclk
+/*PWM setup*/
+GPIOE->MODER |= 0x00080000; // set PE.9 to alternate function (10)
+GPIOE->AFR[1] |=0x00000020; //Set PE.9 to output TIM1_CH1
+TIM1->PSC = 79; //Prescaler value in Timer 1 as 79
+TIM1->ARR = 500; //Auto-Reset Register of Timer 1 set to 1000 counts - sets to 200Hz
+TIM1->CCMR1 |= 0x00000060; //Set channel 1 (bits OC1M - PE.9) timer 1 to PWM mode (0110)
+TIM1->BDTR |= TIM_BDTR_MOE; //Enable channel 1 to output to PE.9
+TIM1->CCER |= TIM_CCER_CC1E; // Enable channel 1 to be output in the CCER
+TIM1->CR1 |= TIM_CR1_CEN; //Enable timer 1
+/*Interupt set up*/
+EXTI->IMR |= EXTI_IMR_MR0; //unmasks ext 10
+EXTI->RTSR |= EXTI_RTSR_TR0; //interupt triggered by rising edge 
+SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PA; //enable PA.0 to gen interupt ext 10
+NVIC_EnableIRQ(EXTI0_IRQn); //tell NVIC to look for event driven interupt from EXTI0
+dutyno=0; //set duty no to 0 to initialise 
+	while (1) //to ensure does not get stuck in set up
+	    {
+         
+          }  
+}
+
+/*ISR*/
+void EXTI0_IRQHandler() //interrupt service routine
+{
+	if (EXTI->PR & EXTI_PR_PR0) // check source of interrupt
+	{
+	EXTI->PR |= EXTI_PR_PR0; // clear interrupt flag
+		if (dutyno <500) //if loop - duty cycle value less than or equal to 500
+			{
+			dutyno = dutyno + 125; //add 125 to duty no variable with each interrupt
+			TIM1->CCR1 = dutyno; //put the dutyno value onto the CCR1 register
+			GPIOE->BSRRH = 0xFF00; //switch off the LEDs
+			GPIOE->BSRRL = 0x0020; //switch on PE.9 LED3
+			}
+		else if (dutyno >=500) //otherwise, if duty value is 500 or over
+			{
+			dutyno=0;    //set the duty no back to 0
+			TIM1->CCR1 = dutyno; //put this value onto the CCR1 register
+			GPIOE->BSRRH = 0xFF00; //switch off all the LEDs
+			GPIOE->BSRRL = 0x0020; //switch on PE.9 LED3
+	    }		
+		
+  }
+}
